@@ -1,6 +1,8 @@
 
 
 import UIKit
+import AVFoundation
+import Photos
 
 class HomeViewController: UIViewController {
     
@@ -72,18 +74,85 @@ class HomeViewController: UIViewController {
 
         
     }
+    
+    func checkPermissionsForCamera() {
+        
+        AVCaptureDevice.authorizationStatus(for: .video)
+        
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            
+            self.imagePicker.sourceType = .camera;
+            self.imagePicker.allowsEditing = true
+            self.present(self.imagePicker, animated: true, completion: nil)
+            
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                if granted {
+                    self.imagePicker.sourceType = .camera;
+                    self.imagePicker.allowsEditing = true
+                    self.present(self.imagePicker, animated: true, completion: nil)
+                    
+                }
+            }
+            
+        case .denied:
+            displayHelpingNote()
+
+            return
+        case .restricted:
+            displayHelpingNote()
+            return
+        }
+    }
+    
+    func checkPermissionsForLibrary() {
+        
+        let status = PHPhotoLibrary.authorizationStatus()
+        switch status {
+        case .authorized:
+            self.imagePicker.sourceType = .photoLibrary;
+            self.present(self.imagePicker, animated: true)
+        case .denied, .restricted :
+            displayHelpingNote()
+        case .notDetermined:
+
+            PHPhotoLibrary.requestAuthorization { status in
+                
+                switch status {
+                    
+                case .authorized:
+                    self.imagePicker.sourceType = .photoLibrary;
+                    self.present(self.imagePicker, animated: true)
+                case .denied, .restricted:
+                    self.displayHelpingNote()
+                case .notDetermined:
+                    self.displayHelpingNote()
+
+                }
+            }
+        }
+    }
 
     
     @objc func openCamera() {
+        checkPermissionsForCamera()
         
-        imagePicker.sourceType = .camera;
-        imagePicker.allowsEditing = true
-        present(imagePicker, animated: true, completion: nil)
+
     }
     
     @objc func openImages() {
-        imagePicker.sourceType = .photoLibrary;
-        present(imagePicker, animated: true)
+        checkPermissionsForLibrary()
+        
+    }
+    
+    func displayHelpingNote() {
+        
+        let alert = UIAlertController(title: "Filter Fever Needs Permission", message: "Please navigate to settings and in the bottom find Filter Fever and enable this service.", preferredStyle: .alert)
+        let action = UIAlertAction(title: "OK", style: .cancel, handler: nil)
+        alert.addAction(action)
+        present(alert, animated: true, completion: nil)
+        
     }
 
 
